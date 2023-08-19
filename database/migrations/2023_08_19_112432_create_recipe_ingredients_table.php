@@ -15,7 +15,6 @@ return new class extends Migration
             $table->id();
             $table->unsignedBigInteger('recipe_id');
             $table->unsignedBigInteger('ingredient_id');
-            $table->unsignedBigInteger('unit_id');
             $table->float('quantity');
             $table->timestamps();
         });
