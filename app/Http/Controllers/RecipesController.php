@@ -15,8 +15,9 @@ use App\Models\IngredientRecipe;
 class RecipesController extends Controller
 {
 
-    function getRecipe($recipeId)
-    {
+    function getRecipe($recipeId = null){
+
+    if ($recipeId){
         $recipe = Recipe::with([
             'comments.user',
             'likes.user',
@@ -25,7 +26,7 @@ class RecipesController extends Controller
             'ingredients.unit'
         ])->findOrFail($recipeId);
     
-        $formattedRecipe = [
+        $getRecipe = [
             "id" => $recipe->id,
             "cuisine" => $recipe->cuisine->name,
             "title" => $recipe->title,
@@ -64,8 +65,16 @@ class RecipesController extends Controller
             })
         ];
 
-        return response()->json($formattedRecipe);
+        return response()->json($getRecipe);
+    }else{
+        $recipes = Recipe::withCount('likes')
+            ->get();
+
+        return response()->json($recipes);
+        }
     }
-    }
+}
+
+    
     
     
