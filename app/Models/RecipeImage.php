@@ -4,18 +4,19 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use App\Models\Recipe;
 
-class Cuisine extends Model
+class RecipeImage extends Model
 {
     use HasFactory;
     protected $fillable = [
-        'name',
+        'recipe_id',
+        'image_url',
     ];
 
-    public function recipes(): HasMany
+    public function recipe(): BelongsTo
     {
-        return $this->hasMany(Recipe::class);
+        return $this->belongsTo(Recipe::class);
     }
 }

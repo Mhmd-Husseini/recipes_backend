@@ -4,12 +4,14 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\Pivot;
 
-class Recipe_Image extends Model
+class IngredientRecipe extends Pivot
 {
-    use HasFactory;
+    protected $table = 'ingredient_recipe';
+
     protected $fillable = [
-        'recipe_id',
-        'image_url',
+        'quantity'
     ];
 }
+
