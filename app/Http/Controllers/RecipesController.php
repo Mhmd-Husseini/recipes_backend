@@ -68,7 +68,7 @@ class RecipesController extends Controller
     }else{
         $recipes = Recipe::withCount('likes')
         ->with(['images' => function ($query) {
-            $query->select('recipe_id', 'image_url'); // Select all images for the recipe
+            $query->select('recipe_id', 'image_url'); 
         }, 'cuisine'])
         ->get()
         ->map(function ($recipe) {
@@ -77,9 +77,6 @@ class RecipesController extends Controller
                 "cuisine" => $recipe->cuisine->name,
                 "title" => $recipe->title,
                 "description" => $recipe->description,
-                "directions" => $recipe->directions,
-                "created_at" => $recipe->created_at,
-                "updated_at" => $recipe->updated_at,
                 "likes_count" => $recipe->likes_count,
                 "images" => $recipe->images->map(function ($image) {
                     return [
