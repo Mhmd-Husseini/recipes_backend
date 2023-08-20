@@ -64,17 +64,32 @@ class RecipesController extends Controller
                 ];
             })
         ];
-
         return response()->json($getRecipe);
     }else{
         $recipes = Recipe::withCount('likes')
-            ->get();
-
-        return response()->json($recipes);
-        }
-    }
-}
-
+        ->with(['images' => function ($query) {
+            $query->select('recipe_id', 'image_url'); // Select all images for the recipe
+        }, 'cuisine'])
+        ->get()
+        ->map(function ($recipe) {
+            return [
+                "id" => $recipe->id,
+                "cuisine" => $recipe->cuisine->name,
+                "title" => $recipe->title,
+                "description" => $recipe->description,
+                "directions" => $recipe->directions,
+                "created_at" => $recipe->created_at,
+                "updated_at" => $recipe->updated_at,
+                "likes_count" => $recipe->likes_count,
+                "images" => $recipe->images->map(function ($image) {
+                    return [
+                        "image_url" => $image->image_url,
+                    ];
+                }),
+            ];
+        });
+    
+    return response()->json($recipes);
     
     
-    
+}}}
