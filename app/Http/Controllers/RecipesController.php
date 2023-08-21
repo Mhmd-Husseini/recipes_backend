@@ -1,12 +1,12 @@
 <?php
 
 namespace App\Http\Controllers;
-
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Http\Request;
 use App\Models\Recipe;
 use App\Models\Comment;
 use App\Models\Like;
-use App\Models\Recipe_Image;
+use App\Models\RecipeImage; 
 use App\Models\Cuisine;
 use App\Models\Ingredient;
 use App\Models\Unit;
@@ -15,6 +15,8 @@ use App\Models\IngredientRecipe;
 class RecipesController extends Controller{
 
     function getRecipe($recipeId = null){
+        $user = Auth::user();
+        $user_id = $user->id;
     if ($recipeId){
         $recipe = Recipe::with([
             'comments.user',
@@ -24,6 +26,7 @@ class RecipesController extends Controller{
             'ingredients.unit'
         ])->findOrFail($recipeId);
     
+        $is_liked = $recipe->likes->pluck('user_id')->contains($user_id);
         $getRecipe = [
             "id" => $recipe->id,
             "cuisine" => $recipe->cuisine->name,
@@ -52,6 +55,7 @@ class RecipesController extends Controller{
                 ];
             }),
             "images" => $recipe->images,
+            "is_liked" => $is_liked,
             "ingredients" => $recipe->ingredients->map(function ($ingredient) {
                 return [
                     "id" => $ingredient->id,
@@ -60,7 +64,7 @@ class RecipesController extends Controller{
                     "unit" => $ingredient->unit->name,
                     "unit_id" => $ingredient->pivot->unit_id,
                 ];
-            })
+            }),         
         ];
         return response()->json($getRecipe);
     }else{
@@ -88,7 +92,7 @@ class RecipesController extends Controller{
 }}
 
     public function likeRecipe(Request $request, $recipeId){
-        $user = $request->user();
+        $user = Auth::user();
         $recipe = Recipe::findOrFail($recipeId);
 
         $existingLike = Like::where('user_id', $user->id)
@@ -109,7 +113,7 @@ class RecipesController extends Controller{
     }
 
     public function addComment(Request $request, $recipeId){
-        $user = $request->user();
+        $user = Auth::user();
         $recipe = Recipe::findOrFail($recipeId);
 
         $this->validate($request, [
@@ -130,6 +134,61 @@ class RecipesController extends Controller{
         ]);
     }
 
+    public function addRecipe(Request $request)
+{
+    try {
+
+    $validatedData = $request->validate([
+        'cuisine_id' => 'required',
+        'title' => 'required',
+        'description' => 'required',
+        'directions' => 'required',
+        'images.*' => 'required|string', 
+        'ingredients' => 'required|array|min:1',
+        'ingredients.*.id' => 'required|exists:ingredients,id',
+        'ingredients.*.quantity' => 'required|numeric',
+    ]);
+
+    $recipe = new Recipe();
+    $recipe->cuisine_id = $validatedData['cuisine_id'];
+    $recipe->title = $validatedData['title'];
+    $recipe->description = $validatedData['description'];
+    $recipe->directions = $validatedData['directions'];
+    $recipe->save();
+
+    if ($request->has('images')) {
+        $imageDataArray = $request->input('images'); 
+        foreach ($imageDataArray as $index => $imageData) {
+            $imageName = time() . "_$index.png"; 
+            $path = storage_path('app/public/images/' . $imageName);
+            $decodedImageData = base64_decode($imageData);
+            file_put_contents($path, $decodedImageData);
+            $image = new RecipeImage();
+            $image->image_url = $path;
+            $image->recipe_id=$recipe->id;
+            $image->save();
+            $uploadedImagePaths[] = $path;
+        }
+    }
+
+    foreach ($validatedData['ingredients'] as $ingredient) {
+        $recipe->ingredients()->attach($ingredient['id'], ['quantity' => $ingredient['quantity']]);
+    }
+    $response = [
+        'message' => 'Recipe added successfully',
+        'recipe' => [
+            'id' => $recipe->id,
+            'cuisine' => $recipe->cuisine,
+            'title' => $recipe->title,
+            'description' => $recipe->description,
+            'images' => $recipe->images,
+            'ingredients' => $recipe->ingredients,
+        ],
+    ];
+
+    return response()->json(['message' => 'Recipe added successfully'], 200);
+} catch (\Exception $e) {
+    return response()->json(['error' => $e->getMessage()], 500);
+}}
+
 }
-
-
