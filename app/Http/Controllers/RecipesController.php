@@ -134,61 +134,90 @@ class RecipesController extends Controller{
         ]);
     }
 
+    // public function addRecipe(Request $request)
+    // {
+    //     try {
+    //         $validatedData = $request->validate([
+    //             'cuisine_id' => 'required',
+    //             'title' => 'required',
+    //             'description' => 'required',
+    //             'directions' => 'required',
+    //             'images.*' => 'required|image|mimes:jpeg,png,jpg,gif',
+    //             'ingredients' => 'required|array|min:1',
+    //             'ingredients.*.id' => 'required|exists:ingredients,id',
+    //             'ingredients.*.quantity' => 'required|numeric',
+    //         ]);
+    
+    //         $recipe = new Recipe();
+    //         $recipe->cuisine_id = $validatedData['cuisine_id'];
+    //         $recipe->title = $validatedData['title'];
+    //         $recipe->description = $validatedData['description'];
+    //         $recipe->directions = $validatedData['directions'];
+    //         $recipe->save();
+    
+    //         foreach ($request->file('images') as $image) {
+    //             $imageName = time() . '_' . $image->getClientOriginalName();
+    //             $path = storage_path('app/public/images/' . $imageName);
+    //             $image->storeAs('app/public/images', $imageName);
+    //             $uploadedImages[] = $path;
+    
+    //             $recipe_img = new RecipeImage();
+    //             $recipe_img->recipe_id = $recipe->id;
+    //             $recipe_img->image_url = $path;
+    //             $recipe_img->save();
+    //         }
+    
+    //         foreach ($validatedData['ingredients'] as $ingredient) {
+    //             $recipe->ingredients()->attach($ingredient['id'], ['quantity' => $ingredient['quantity']]);
+    //         }
+    
+    //         return response()->json(['message' => 'Recipe added successfully', 'recipe' => $recipe], 200);
+    //     } catch (\Throwable $e) {
+    //         return response()->json(['error' => $e->getMessage()], 500);
+    //     }
+    // }
+
     public function addRecipe(Request $request)
-{
-    try {
-
-    $validatedData = $request->validate([
-        'cuisine_id' => 'required',
-        'title' => 'required',
-        'description' => 'required',
-        'directions' => 'required',
-        'images.*' => 'required|string', 
-        'ingredients' => 'required|array|min:1',
-        'ingredients.*.id' => 'required|exists:ingredients,id',
-        'ingredients.*.quantity' => 'required|numeric',
-    ]);
-
-    $recipe = new Recipe();
-    $recipe->cuisine_id = $validatedData['cuisine_id'];
-    $recipe->title = $validatedData['title'];
-    $recipe->description = $validatedData['description'];
-    $recipe->directions = $validatedData['directions'];
-    $recipe->save();
-
-    if ($request->has('images')) {
-        $imageDataArray = $request->input('images'); 
-        foreach ($imageDataArray as $index => $imageData) {
-            $imageName = time() . "_$index.png"; 
-            $path = storage_path('app/public/images/' . $imageName);
-            $decodedImageData = base64_decode($imageData);
-            file_put_contents($path, $decodedImageData);
-            $image = new RecipeImage();
-            $image->image_url = $path;
-            $image->recipe_id=$recipe->id;
-            $image->save();
-            $uploadedImagePaths[] = $path;
+    {
+        try {
+            $validatedData = $request->validate([
+                'cuisine_id' => 'required',
+                'title' => 'required',
+                'description' => 'required',
+                'directions' => 'required',
+                'images' => 'required|array|min:1',
+                'images.*' => 'required|string', 
+                'ingredients' => 'required|array|min:1',
+                'ingredients.*.id' => 'required|exists:ingredients,id',
+                'ingredients.*.quantity' => 'required|numeric',
+            ]);
+    
+            $recipe = new Recipe();
+            $recipe->cuisine_id = $validatedData['cuisine_id'];
+            $recipe->title = $validatedData['title'];
+            $recipe->description = $validatedData['description'];
+            $recipe->directions = $validatedData['directions'];
+            $recipe->save();
+    
+            $base64Images = [];
+    
+            foreach ($validatedData['images'] as $base64Image) {
+                $recipe_img = new RecipeImage();
+                $recipe_img->recipe_id = $recipe->id;
+                $recipe_img->image_url = $base64Image;
+                $recipe_img->save();
+                $base64Images[] = $base64Image; 
+            }
+    
+            foreach ($validatedData['ingredients'] as $ingredient) {
+                $recipe->ingredients()->attach($ingredient['id'], ['quantity' => $ingredient['quantity']]);
+            }
+    
+            return response()->json(['message' => 'Recipe added successfully', 'recipe' => $recipe, 'base64_images' => $base64Images], 200);
+        } catch (\Throwable $e) {
+            return response()->json(['error' => $e->getMessage()], 500);
         }
     }
+    
 
-    foreach ($validatedData['ingredients'] as $ingredient) {
-        $recipe->ingredients()->attach($ingredient['id'], ['quantity' => $ingredient['quantity']]);
-    }
-    $response = [
-        'message' => 'Recipe added successfully',
-        'recipe' => [
-            'id' => $recipe->id,
-            'cuisine' => $recipe->cuisine,
-            'title' => $recipe->title,
-            'description' => $recipe->description,
-            'images' => $recipe->images,
-            'ingredients' => $recipe->ingredients,
-        ],
-    ];
-
-    return response()->json(['message' => 'Recipe added successfully'], 200);
-} catch (\Exception $e) {
-    return response()->json(['error' => $e->getMessage()], 500);
-}}
-
-}
+}    
